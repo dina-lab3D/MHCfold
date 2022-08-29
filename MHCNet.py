@@ -106,47 +106,38 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     # predict Nb ca coordinates
     input_matrix = np.array(input_matrix)
 
-    backbone_coords = structure_module.predict(input_matrix)
-
-    ################################
-    # This is because current version of classification module can predict only 
-    # on N that satisfies: N % 512 == 0
-    real_n = input_matrix.shape[0]
-    n = int((real_n // 512) * 512)
-    if real_n == n:
-        binary_classification = np.zeros(n)
-        # topped_inputs = np.zeros((n, MHC_MAX_LENGTH, FEATURE_NUM))
-    else:
-        binary_classification = np.zeros(n + 512)
-        # topped_inputs = np.zeros((n + 512, MHC_MAX_LENGTH, FEATURE_NUM))
-    # topped_inputs[:real_n, :, :] = input_matrix
-
-    for i in range(n // 512):
-      binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
-    last_batch = np.zeros((512, 415, 25))
-    last_batch[:real_n - n] = input_matrix[n:]
-    binary_classification[n:] = classification_module.predict(last_batch, batch_size=512).flatten()
-    binary_classification = binary_classification[:real_n]
-    binary_classification = binary_classification
-    
-    ################################
-
     # change to output directory
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     os.chdir(output_dir)
 
     if task != 1:
+      ################################
+      # This is because current version of classification module can predict only 
+      # on N that satisfies: N % 512 == 0
+      real_n = input_matrix.shape[0]
+      n = int((real_n // 512) * 512)
+      if real_n == n:
+          binary_classification = np.zeros(n)
+          # topped_inputs = np.zeros((n, MHC_MAX_LENGTH, FEATURE_NUM))
+      else:
+          binary_classification = np.zeros(n + 512)
+          # topped_inputs = np.zeros((n + 512, MHC_MAX_LENGTH, FEATURE_NUM))
+      # topped_inputs[:real_n, :, :] = input_matrix
+
+      for i in range(n // 512):
+        binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
+      last_batch = np.zeros((512, 415, 25))
+      last_batch[:real_n - n] = input_matrix[n:]
+      binary_classification[n:] = classification_module.predict(last_batch, batch_size=512).flatten()
+      binary_classification = binary_classification[:real_n]
+      binary_classification = binary_classification
+      ################################
       classification_df = pd.DataFrame({"name": names, "score": binary_classification})
       classification_df.to_csv("classification_results")
-      # with open("classification_results.txt", 'w') as c_path:
-      #   for i, classification in enumerate(binary_classification):
-      #     if i >= real_n:
-      #       break
-      #     else:
-      #       c_path.write("{}: {}\n".format(name, classification))
 
     if task == 1 or task == 3:
+      backbone_coords = structure_module.predict(input_matrix)
       for coords, sequence, name in (zip(backbone_coords, sequences, names)):
           backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
           with open(backbone_file_path, "w") as file:
@@ -196,5 +187,5 @@ if __name__ == '__main__':
     run_mhcnet(args.fasta, structure_model, classification_model, args.task, output_directory, args.modeller, scwrl_path)
     end = timer()
 
-    print("NanoNet ended successfully, models are located in directory:'{}', total time : {}.".format(output_directory,
+    print("MHCNet ended successfully, models are located in directory:'{}', total time : {}.".format(output_directory,
                                                                                                       end - start))
