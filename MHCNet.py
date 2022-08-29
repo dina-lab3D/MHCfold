@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     # check arguments
     nanonet_dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
-    structure_model = os.path.join(nanonet_dir_path, 'colab_net', 'lean_model_for_classifier_new_padding2')
+    structure_model = os.path.join(nanonet_dir_path, 'lean_model_for_classifier_new_padding2')
     # classification_model = os.path.join(nanonet_dir_path, 'colab_net', 'classification_model')
 
     scwrl_path = os.path.abspath(args.scwrl) if args.scwrl else None
