@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import numpy as np
+import pandas as pd
 import logging
 import subprocess
 from Bio import SeqIO
@@ -14,7 +15,6 @@ from tqdm import tqdm
 
 from seq_process import *
 from create_pdb import *
-
 
 
 def seq_iterator(fasta_file_path):
@@ -115,11 +115,20 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     n = int((real_n // 512) * 512)
     if real_n == n:
         binary_classification = np.zeros(n)
+        # topped_inputs = np.zeros((n, MHC_MAX_LENGTH, FEATURE_NUM))
     else:
         binary_classification = np.zeros(n + 512)
+        # topped_inputs = np.zeros((n + 512, MHC_MAX_LENGTH, FEATURE_NUM))
+    # topped_inputs[:real_n, :, :] = input_matrix
 
     for i in range(n // 512):
-        binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
+      binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
+    last_batch = np.zeros((512, 415, 25))
+    last_batch[:real_n - n] = input_matrix[n:]
+    binary_classification[n:] = classification_module.predict(last_batch, batch_size=512).flatten()
+    binary_classification = binary_classification[:real_n]
+    binary_classification = binary_classification
+    
     ################################
 
     # change to output directory
@@ -128,12 +137,14 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     os.chdir(output_dir)
 
     if task != 1:
-      with open("classification_results.txt", 'w') as c_path:
-        for i, classification in enumerate(binary_classification):
-          if i >= real_n:
-            break
-          else:
-            c_path.write("{}: {}\n".format(name, classification))
+      classification_df = pd.DataFrame({"name": names, "score": binary_classification})
+      classification_df.to_csv("classification_results")
+      # with open("classification_results.txt", 'w') as c_path:
+      #   for i, classification in enumerate(binary_classification):
+      #     if i >= real_n:
+      #       break
+      #     else:
+      #       c_path.write("{}: {}\n".format(name, classification))
 
     if task == 1 or task == 3:
       for coords, sequence, name in (zip(backbone_coords, sequences, names)):
