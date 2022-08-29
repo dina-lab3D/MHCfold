@@ -69,5 +69,5 @@ def matrix_to_pdb_bone2(pdb_file, seq, coord_matrix):
                     k += 1
             i += 1
     pdb_file.write(END_LINE)
-    pdb_file.close()
+
 
