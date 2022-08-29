@@ -77,7 +77,7 @@ def relax_pdb(pdb_name, sequence):
     os.rename("{}.B99990001.pdb".format(pdb_name), "{}_nanonet_full_relaxed.pdb".format(pdb_name))
 
 
-def run_mhcnet(fasta_path, structure_model_path, task, output_dir, modeller, scwrl):
+def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task, output_dir, modeller, scwrl):
     """
     runs NanoNet structure predictions
     """
@@ -101,23 +101,49 @@ def run_mhcnet(fasta_path, structure_model_path, task, output_dir, modeller, scw
     # load model
     logging.getLogger('tensorflow').disabled = True
     structure_module = tf.keras.models.load_model(structure_model_path, compile=False)
+    classification_module = tf.keras.models.load_model(classification_model_path, compile=False)
 
     # predict Nb ca coordinates
-    backbone_coords = structure_module.predict(np.array(input_matrix))
+    input_matrix = np.array(input_matrix)
+
+    backbone_coords = structure_module.predict(input_matrix)
+
+    ################################
+    # This is because current version of classification module can predict only 
+    # on N that satisfies: N % 512 == 0
+    real_n = input_matrix.shape[0]
+    n = int((real_n // 512) * 512)
+    if real_n == n:
+        binary_classification = np.zeros(n)
+    else:
+        binary_classification = np.zeros(n + 512)
+
+    for i in range(n // 512):
+        binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
+    ################################
 
     # change to output directory
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     os.chdir(output_dir)
 
-    for coords, sequence, name in (zip(backbone_coords, sequences, names)):
-        backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
-        with open(backbone_file_path, "w") as file:
-            matrix_to_pdb_bone2(file, sequence, coords)
-        if modeller:
-            relax_pdb(name, sequence)
-        if scwrl:
-            subprocess.run("{} -i {} -o {}_mhcnet_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if task != 1:
+      with open("classification_results.txt", 'w') as c_path:
+        for i, classification in enumerate(binary_classification):
+          if i >= real_n:
+            break
+          else:
+            c_path.write("{}: {}\n".format(name, classification))
+
+    if task == 1 or task == 3:
+      for coords, sequence, name in (zip(backbone_coords, sequences, names)):
+          backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
+          with open(backbone_file_path, "w") as file:
+              matrix_to_pdb_bone2(file, sequence, coords)
+          if modeller:
+              relax_pdb(name, sequence)
+          if scwrl:
+              subprocess.run("{} -i {} -o {}_mhcnet_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
@@ -137,7 +163,7 @@ if __name__ == '__main__':
     # check arguments
     nanonet_dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
     structure_model = os.path.join(nanonet_dir_path, 'lean_model_for_classifier_new_padding2')
-    # classification_model = os.path.join(nanonet_dir_path, 'colab_net', 'classification_model')
+    classification_model = os.path.join(os.path.dirname(nanonet_dir_path),'full_data_25_epochs_transformer_Cbeta_v4_pariwise=False')
 
     scwrl_path = os.path.abspath(args.scwrl) if args.scwrl else None
     output_directory = args.output_dir if args.output_dir else os.path.join(".", "MHCNetResults")
@@ -156,7 +182,7 @@ if __name__ == '__main__':
         exit(1)
 
     start = timer()
-    run_mhcnet(args.fasta, structure_model, args.task, output_directory, args.modeller, scwrl_path)
+    run_mhcnet(args.fasta, structure_model, classification_model, args.task, output_directory, args.modeller, scwrl_path)
     end = timer()
 
     print("NanoNet ended successfully, models are located in directory:'{}', total time : {}.".format(output_directory,
