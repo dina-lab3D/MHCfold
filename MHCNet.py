@@ -94,6 +94,7 @@ def run_mhcnet(fasta_path, structure_model_path, task, output_dir, modeller, scw
     for i in range(len(input_matrix)):
         a, b, p = sequences[i].split(':')
         seq = pad_seq2(a, b, p)
+        sequences[i] = seq
         one_hot = generate_input2(seq)
         input_matrix[i] = one_hot
 
@@ -102,36 +103,21 @@ def run_mhcnet(fasta_path, structure_model_path, task, output_dir, modeller, scw
     structure_module = tf.keras.models.load_model(structure_model_path, compile=False)
 
     # predict Nb ca coordinates
-    backbone_coords = structure_model_path.predict(np.array(input_matrix))
+    backbone_coords = structure_module.predict(np.array(input_matrix))
 
     # change to output directory
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     os.chdir(output_dir)
 
-    # create one ca pdb file
-    # if single_file:
-    backbone_file_path = "mhcnet_backbone_cb.pdb"
-    with open(backbone_file_path, "w") as file:
-        
-        file.write(HEADER.format(""))
-        for coords, sequence, name in (zip(backbone_coords, sequences, names)):
-            file.write("MODEL {}\n".format(name))
+    for coords, sequence, name in (zip(backbone_coords, sequences, names)):
+        backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
+        with open(backbone_file_path, "w") as file:
             matrix_to_pdb_bone2(file, sequence, coords)
-            file.write("ENDMDL\n")
-
-    # create many ca pdb files
-    # else:
-    #     for coords, sequence, name in (zip(backbone_coords, sequences, names)):
-    #         backbone_file_path = "{}_nanonet_backbone_cb.pdb".format(name)
-    #         with open(backbone_file_path, "w") as file:
-    #             file.write(HEADER.format(name))
-    #             matrix_to_pdb(file, sequence, coords)
-    #         if modeller:
-    #             relax_pdb(name, sequence)
-    #         if scwrl:
-    #             subprocess.run("{} -i {} -o {}_nanonet_full.pdb".format(scwrl, backbone_file_path, name), shell=True,
-    #                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if modeller:
+            relax_pdb(name, sequence)
+        if scwrl:
+            subprocess.run("{} -i {} -o {}_mhcnet_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
@@ -167,9 +153,6 @@ if __name__ == '__main__':
         exit(1)
     if scwrl_path and not os.path.exists(scwrl_path):
         print("Can't find Scwrl4 '{}', aborting.".format(scwrl_path), file=sys.stderr)
-        exit(1)
-    if args.single_file and (args.modeller or scwrl_path):
-        print("Can't reconstruct side chains with single_file option. remove flag -s", file=sys.stderr)
         exit(1)
 
     start = timer()
