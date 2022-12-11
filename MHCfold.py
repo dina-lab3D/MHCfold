@@ -138,6 +138,7 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
 
     if task == 1 or task == 3:
       backbone_coords = structure_module.predict(input_matrix)
+      print(backbone_coords)
       for coords, sequence, name in (zip(backbone_coords, sequences, names)):
           backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
           with open(backbone_file_path, "w") as file:
