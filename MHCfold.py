@@ -163,9 +163,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # check arguments
-    nanonet_dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
-    structure_model = os.path.join(nanonet_dir_path, 'lean_model_for_classifier_new_padding2')
-    classification_model = os.path.join(os.path.dirname(nanonet_dir_path),'full_data_25_epochs_transformer_Cbeta_v4_pariwise=False')
+    MHCfold_dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
+    structure_model = os.path.join(MHCfold_dir_path, 'lean_model_for_classifier_new_padding2')
+    classification_model = os.path.join(os.path.dirname(MHCfold_dir_path),'v7_date_5_9_2022')
 
     scwrl_path = os.path.abspath(args.scwrl) if args.scwrl else None
     output_directory = args.output_dir if args.output_dir else os.path.join(".", "MHCNetResults")
