@@ -112,33 +112,12 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     os.chdir(output_dir)
 
     if task != 1:
-      ################################
-      # This is because current version of classification module can predict only 
-      # on N that satisfies: N % 512 == 0
-#       real_n = input_matrix.shape[0]
-#       n = int((real_n // 512) * 512)
-#       if real_n == n:
-#           binary_classification = np.zeros(n)
-#           # topped_inputs = np.zeros((n, MHC_MAX_LENGTH, FEATURE_NUM))
-#       else:
-#           binary_classification = np.zeros(n + 512)
-#           # topped_inputs = np.zeros((n + 512, MHC_MAX_LENGTH, FEATURE_NUM))
-#       # topped_inputs[:real_n, :, :] = input_matrix
-
-#       for i in range(n // 512):
-#         binary_classification[i * 512: (i + 1) * 512] = classification_module.predict(input_matrix[i * 512: (i + 1) * 512], batch_size=512).flatten()
-#       last_batch = np.zeros((512, 415, 25))
-#       last_batch[:real_n - n] = input_matrix[n:]
-#       binary_classification[n:] = classification_module.predict(last_batch, batch_size=512).flatten()
-#       binary_classification = binary_classification[:real_n]
       binary_classification =  classification_module.predict(input_matrix).flatten()
-      ################################
       classification_df = pd.DataFrame({"name": names, "score": binary_classification})
       classification_df.to_csv("classification_results")
 
     if task == 1 or task == 3:
       backbone_coords = structure_module.predict(input_matrix)
-      print(backbone_coords)
       for coords, sequence, name in (zip(backbone_coords, sequences, names)):
           backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
           with open(backbone_file_path, "w") as file:
