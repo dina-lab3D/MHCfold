@@ -55,7 +55,7 @@ def relax_pdb(pdb_name, sequence):
     """
     log.none()
     log.level(output=0, notes=0, warnings=0, errors=0, memory=0)
-    make_alignment_file(pdb_name, sequence.replace(":", "/")
+    make_alignment_file(pdb_name, sequence.replace(":", "/"))
 
     pdb_file = "{}_mhcfold_backbone_cb".format(pdb_name)
 
