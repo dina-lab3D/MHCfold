@@ -162,7 +162,7 @@ if __name__ == '__main__':
         print("Can't find fasta file '{}', aborting.".format(args.fasta), file=sys.stderr)
         exit(1)
     if not os.path.exists(structure_model):
-        print("Can't find trained NanoNet '{}', aborting.".format(structure_model), file=sys.stderr)
+        print("Can't find trained MHCfold '{}', aborting.".format(structure_model), file=sys.stderr)
         exit(1)
     if scwrl_path and not os.path.exists(scwrl_path):
         print("Can't find Scwrl4 '{}', aborting.".format(scwrl_path), file=sys.stderr)
