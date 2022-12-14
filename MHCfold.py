@@ -38,7 +38,7 @@ def make_alignment_file(pdb_name, sequence):
         ali_file.write("sequence:{}:::::::0.00: 0.00\n".format(pdb_name))
         ali_file.write("{}*\n".format(sequence))
 
-    pdb_file = "{}_nanonet_backbone_cb".format(pdb_name)
+    pdb_file = "{}_mhcfold_backbone_cb".format(pdb_name)
 
     env = environ()
     aln = alignment(env)
