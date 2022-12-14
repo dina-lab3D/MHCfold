@@ -55,9 +55,9 @@ def relax_pdb(pdb_name, sequence):
     """
     log.none()
     log.level(output=0, notes=0, warnings=0, errors=0, memory=0)
-    make_alignment_file(pdb_name, sequence)
+    make_alignment_file(pdb_name, sequence.replace(":", "/")
 
-    pdb_file = "{}_nanonet_backbone_cb".format(pdb_name)
+    pdb_file = "{}_mhcfold_backbone_cb".format(pdb_name)
 
     # log.verbose()
     env = environ()
@@ -65,7 +65,7 @@ def relax_pdb(pdb_name, sequence):
     # directories for input atom files
     env.io.atom_files_directory = ['.', '../atom_files']
 
-    a = automodel(env, alnfile='alignment_for_modeller.ali', knowns=pdb_file, sequence=pdb_name)
+    a = MyLoopModel(env, alnfile='alignment_for_modeller.ali', knowns=pdb_file, sequence=pdb_name)
     a.starting_model = 1
     a.ending_model = 1
     a.make()
@@ -74,7 +74,7 @@ def relax_pdb(pdb_name, sequence):
     for file in os.listdir(os.getcwd()):
         if file[-3:] in ['001', 'rsr', 'csh', 'ini', 'ali', 'sch']:
             os.remove(file)
-    os.rename("{}.B99990001.pdb".format(pdb_name), "{}_nanonet_full_relaxed.pdb".format(pdb_name))
+    os.rename("{}.B99990001.pdb".format(pdb_name), "{}_mhcfold_full_relaxed.pdb".format(pdb_name))
 
 
 def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task, output_dir, modeller, scwrl):
@@ -119,13 +119,13 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     if task == 1 or task == 3:
       backbone_coords = structure_module.predict(input_matrix)
       for coords, sequence, name in (zip(backbone_coords, sequences, names)):
-          backbone_file_path = "{}_mhcnet_backbone_cb.pdb".format(name)
+          backbone_file_path = "{}_mhcfold_backbone_cb.pdb".format(name)
           with open(backbone_file_path, "w") as file:
               matrix_to_pdb_bone2(file, sequence, coords)
           if modeller:
               relax_pdb(name, sequence)
           if scwrl:
-              subprocess.run("{} -i {} -o {}_mhcnet_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+              subprocess.run("{} -i {} -o {}_mhcfold_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
@@ -153,6 +153,11 @@ if __name__ == '__main__':
     if args.modeller:
         from modeller import *
         from modeller.automodel import *
+        class MyLoopModel(automodel):
+            def special_patches(self, aln):
+                # Rename both chains and renumber the residues in each
+                self.rename_segments(segment_ids=['A', 'B', 'C'], renumber_residues=[1, 1, 1])
+                        
     if not os.path.exists(args.fasta):
         print("Can't find fasta file '{}', aborting.".format(args.fasta), file=sys.stderr)
         exit(1)
