@@ -83,13 +83,14 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
     """
     # make input for NanoNet
     sequences = []
+    s = []
     names = []
     #     i = 0
     for sequence, name in seq_iterator(fasta_path):
         sequences.append(sequence)
+        s.append(sequence)
         names.append(name)
     #         i += 1
-
     input_matrix = np.zeros((len(sequences), MHC_MAX_LENGTH, FEATURE_NUM))
     for i in range(len(input_matrix)):
         a, b, p = sequences[i].split(':')
@@ -118,12 +119,12 @@ def run_mhcnet(fasta_path, structure_model_path, classification_model_path, task
 
     if task == 1 or task == 3:
       backbone_coords = structure_module.predict(input_matrix)
-      for coords, sequence, name in (zip(backbone_coords, sequences, names)):
+      for coords, sequence, name, modeller_seq in (zip(backbone_coords, sequences, names, s)):
           backbone_file_path = "{}_mhcfold_backbone_cb.pdb".format(name)
           with open(backbone_file_path, "w") as file:
               matrix_to_pdb_bone2(file, sequence, coords)
           if modeller:
-              relax_pdb(name, sequence)
+              relax_pdb(name, modeller_seq)
           if scwrl:
               subprocess.run("{} -i {} -o {}_mhcfold_full.pdb".format(scwrl, backbone_file_path, name), shell=True,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
