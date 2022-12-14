@@ -70,10 +70,10 @@ def relax_pdb(pdb_name, sequence):
     a.ending_model = 1
     a.make()
 
-    # clean temp files
-    for file in os.listdir(os.getcwd()):
-        if file[-3:] in ['001', 'rsr', 'csh', 'ini', 'ali', 'sch']:
-            os.remove(file)
+#     # clean temp files
+#     for file in os.listdir(os.getcwd()):
+#         if file[-3:] in ['001', 'rsr', 'csh', 'ini', 'ali', 'sch']:
+#             os.remove(file)
     os.rename("{}.B99990001.pdb".format(pdb_name), "{}_mhcfold_full_relaxed.pdb".format(pdb_name))
 
 
